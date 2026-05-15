@@ -28,7 +28,7 @@ Switch users using the dropdown in the top-left corner of the app.
 
 ## Walkthrough Video
 
-[https://www.loom.com/share/7c3879e92a2640babb5ace7dc8aa2d22]
+[https://www.loom.com/share/10480ad0267e4cd684f662ac41261c60]
 
 ---
 

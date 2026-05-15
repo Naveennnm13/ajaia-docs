@@ -4,7 +4,7 @@ A lightweight collaborative document editor with rich text editing, file import,
 
 ## Live Demo
 
-[Deployed on Render — link added after deployment]
+[https://ajaia-docs-117i.onrender.com]
 
 **Test accounts (pre-seeded):**
 | Name | Email |
