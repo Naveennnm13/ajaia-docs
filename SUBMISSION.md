@@ -14,7 +14,7 @@
 
 ## Live URL
 
-[Add Render deployment URL here after deployment]
+[[text](https://ajaia-docs-117i.onrender.com)]
 
 ## Test Credentials
 
@@ -28,7 +28,7 @@ Switch users using the dropdown in the top-left corner of the app.
 
 ## Walkthrough Video
 
-[Add Loom URL here]
+[https://www.loom.com/share/7c3879e92a2640babb5ace7dc8aa2d22]
 
 ---
 

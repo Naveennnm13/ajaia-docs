@@ -47,7 +47,7 @@ I described the two-panel layout (dark sidebar + white editor), and Claude gener
 - Debug the cursor-jump bug in the editor (identified and fixed manually)
 - Make the final call on scope cuts (real auth, real-time sync, export)
 - Write the test cases (written by hand to ensure meaningful coverage)
-- Choose the color palette or font (deliberately chosen to match a professional productivity tool aesthetic)
+- Choose the color palette or font (deliberately chosen to match a professional productivity tool aesthetic modern look)
 
 ---
 
