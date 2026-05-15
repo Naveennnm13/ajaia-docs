@@ -6,11 +6,9 @@ const DB_PATH = path.join(__dirname, '..', 'data.db');
 
 const db = new Database(DB_PATH);
 
-// Enable WAL mode for better performance
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
-// Create tables
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
@@ -33,15 +31,30 @@ db.exec(`
     document_id TEXT NOT NULL,
     shared_with_id TEXT NOT NULL,
     shared_by_id TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'editor',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
     FOREIGN KEY (shared_with_id) REFERENCES users(id),
     FOREIGN KEY (shared_by_id) REFERENCES users(id),
     UNIQUE(document_id, shared_with_id)
   );
+
+  CREATE TABLE IF NOT EXISTS document_versions (
+    id TEXT PRIMARY KEY,
+    document_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    version_number INTEGER NOT NULL,
+    saved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+  );
 `);
 
-// Seed users if none exist
+// Migrate: add role column to existing installs
+try {
+  db.exec(`ALTER TABLE document_shares ADD COLUMN role TEXT NOT NULL DEFAULT 'editor'`);
+} catch (e) { /* already exists */ }
+
 const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
 if (userCount.count === 0) {
   const seedUsers = [

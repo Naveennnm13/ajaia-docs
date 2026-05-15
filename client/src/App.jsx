@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import Editor from './components/Editor';
 import ShareModal from './components/ShareModal';
 import UploadModal from './components/UploadModal';
+import VersionHistory from './components/VersionHistory';
 
 const API = '/api';
 
@@ -22,38 +23,31 @@ export default function App() {
   const [activeDoc, setActiveDoc] = useState(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const saveTimer = useRef(null);
   const [saveStatus, setSaveStatus] = useState('');
 
   const showToast = (message, type = 'success') => setToast({ message, type });
+  const currentUser = users.find(u => u.id === currentUserId) || null;
 
-  // Load users on mount
   useEffect(() => {
     fetch(`${API}/users`)
       .then(r => r.json())
-      .then(data => {
-        setUsers(data);
-        if (data.length > 0) setCurrentUserId(data[0].id);
-      })
+      .then(data => { setUsers(data); if (data.length > 0) setCurrentUserId(data[0].id); })
       .catch(() => showToast('Failed to load users', 'error'));
   }, []);
 
-  // Load documents when user changes
   const loadDocs = useCallback(() => {
     if (!currentUserId) return;
     fetch(`${API}/documents?userId=${currentUserId}`)
       .then(r => r.json())
-      .then(data => {
-        setOwnedDocs(data.owned || []);
-        setSharedDocs(data.shared || []);
-      })
+      .then(data => { setOwnedDocs(data.owned || []); setSharedDocs(data.shared || []); })
       .catch(() => showToast('Failed to load documents', 'error'));
   }, [currentUserId]);
 
   useEffect(() => { loadDocs(); }, [loadDocs]);
 
-  // Auto-save on content/title change
   const scheduleSave = useCallback((docId, title, content) => {
     setSaveStatus('Saving…');
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -77,15 +71,13 @@ export default function App() {
 
   const handleContentChange = (content) => {
     if (!activeDoc) return;
-    const updated = { ...activeDoc, content };
-    setActiveDoc(updated);
+    setActiveDoc(prev => ({ ...prev, content }));
     scheduleSave(activeDoc.id, activeDoc.title, content);
   };
 
   const handleTitleChange = (title) => {
     if (!activeDoc) return;
-    const updated = { ...activeDoc, title };
-    setActiveDoc(updated);
+    setActiveDoc(prev => ({ ...prev, title }));
     scheduleSave(activeDoc.id, title, activeDoc.content);
   };
 
@@ -98,11 +90,9 @@ export default function App() {
       });
       const doc = await r.json();
       loadDocs();
-      setActiveDoc(doc);
+      setActiveDoc({ ...doc, userRole: 'owner' });
       showToast('Document created');
-    } catch {
-      showToast('Failed to create document', 'error');
-    }
+    } catch { showToast('Failed to create document', 'error'); }
   };
 
   const handleSelectDoc = async (docId) => {
@@ -110,9 +100,7 @@ export default function App() {
       const r = await fetch(`${API}/documents/${docId}?userId=${currentUserId}`);
       const doc = await r.json();
       setActiveDoc(doc);
-    } catch {
-      showToast('Failed to open document', 'error');
-    }
+    } catch { showToast('Failed to open document', 'error'); }
   };
 
   const handleDeleteDoc = async () => {
@@ -126,9 +114,7 @@ export default function App() {
       setActiveDoc(null);
       loadDocs();
       showToast('Document deleted');
-    } catch {
-      showToast('Failed to delete document', 'error');
-    }
+    } catch { showToast('Failed to delete document', 'error'); }
   };
 
   const handleUploadComplete = async ({ title, content }) => {
@@ -140,15 +126,20 @@ export default function App() {
       });
       const doc = await r.json();
       loadDocs();
-      setActiveDoc(doc);
+      setActiveDoc({ ...doc, userRole: 'owner' });
       setUploadModalOpen(false);
       showToast(`Imported "${title}"`);
-    } catch {
-      showToast('Import failed', 'error');
-    }
+    } catch { showToast('Import failed', 'error'); }
+  };
+
+  const handleVersionRestore = (restoredDoc) => {
+    setActiveDoc(prev => ({ ...prev, ...restoredDoc }));
+    loadDocs();
+    showToast('Restored to previous version');
   };
 
   const isOwner = activeDoc && activeDoc.owner_id === currentUserId;
+  const userRole = activeDoc?.userRole || (isOwner ? 'owner' : 'editor');
 
   return (
     <div className="app">
@@ -169,20 +160,21 @@ export default function App() {
           <Editor
             doc={activeDoc}
             isOwner={isOwner}
+            userRole={userRole}
             saveStatus={saveStatus}
+            currentUser={currentUser}
             onTitleChange={handleTitleChange}
             onContentChange={handleContentChange}
             onShare={() => setShareModalOpen(true)}
             onDelete={handleDeleteDoc}
+            onShowHistory={() => setHistoryOpen(true)}
           />
         ) : (
           <div className="empty-state">
             <span style={{ fontSize: 40 }}>📄</span>
             <h2>No document selected</h2>
             <p>Create a new document or select one from the sidebar</p>
-            <button className="empty-state-btn" onClick={handleNewDoc}>
-              + New Document
-            </button>
+            <button className="empty-state-btn" onClick={handleNewDoc}>+ New Document</button>
           </div>
         )}
       </main>
@@ -198,20 +190,19 @@ export default function App() {
       )}
 
       {uploadModalOpen && (
-        <UploadModal
-          onClose={() => setUploadModalOpen(false)}
-          onUpload={handleUploadComplete}
-          onToast={showToast}
+        <UploadModal onClose={() => setUploadModalOpen(false)} onUpload={handleUploadComplete} onToast={showToast} />
+      )}
+
+      {historyOpen && activeDoc && (
+        <VersionHistory
+          doc={activeDoc}
+          userId={currentUserId}
+          onRestore={handleVersionRestore}
+          onClose={() => setHistoryOpen(false)}
         />
       )}
 
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onDone={() => setToast(null)}
-        />
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
     </div>
   );
 }
